@@ -1,0 +1,35 @@
+name: Deploy Docker App
+
+on:
+  push:
+    branches:
+      - main  # Workflow kører kun ved push til main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1️⃣ Tjek koden ud
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # 2️⃣ Opsæt SSH til din Azure VM
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.AZURE_VM_SSH_KEY }}
+
+    # 3️⃣ Kør kommandoer på VM via SSH
+    - name: Deploy to Azure VM
+      run: |
+        ssh -o StrictHostKeyChecking=no azureuser@${{ secrets.AZURE_VM_IP }} << 'EOF'
+        cd ~/my-docker-app
+        # Stop og fjern eksisterende container
+        sudo docker stop myapp || true
+        sudo docker rm myapp || true
+        # Byg ny Docker image
+        sudo docker build -t myapp .
+        # Kør container på port 8080
+        sudo docker run -d -p 8080:80 --name myapp myapp
+        EOF
