@@ -3,7 +3,7 @@ name: Deploy Docker App
 on:
   push:
     branches:
-      - main  # Workflow kører kun ved push til main branch
+      - main 
 
 jobs:
   deploy:
@@ -17,6 +17,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.AZURE_VM_SSH_KEY }}
 
-      - name: Deploy to Azure VM
+      - name: Deploy Docker container to Azure VM
         run: |
-          ssh -o StrictHostKeyChecking=no azureuser@135.116.80.231 "cd ~/my-docker-app && sudo docker-compose up -d --build"
+          ssh -o StrictHostKeyChecking=no azureuser@135.116.80.231 << 'EOF'
+            cd ~/my-docker-app
+            sudo docker stop myapp || true
+            sudo docker rm myapp || true
+            sudo docker build -t myapp .
+            sudo docker run -d -p 8080:80 --name myapp myapp
+          EOF
+
